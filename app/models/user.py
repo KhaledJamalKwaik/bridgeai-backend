@@ -20,3 +20,4 @@ class User(Base):
     role = Column(Enum(UserRole), default=UserRole.client)
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+    teams = relationship("Team", back_populates="creator")

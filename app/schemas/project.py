@@ -1,17 +1,41 @@
+from datetime import datetime
 from pydantic import BaseModel
-from typing import Optional
+from enum import Enum
 
 
-class ProjectCreate(BaseModel):
+class ProjectStatus(str, Enum):
+    draft = "draft"
+    pending_approval = "pending_approval"
+    approved = "approved"
+    rejected = "rejected"
+
+
+class ProjectBase(BaseModel):
     name: str
-    description: Optional[str] = None
+    description: str | None = None
+    status: ProjectStatus | None = ProjectStatus.draft
 
 
-class ProjectOut(BaseModel):
+class ProjectCreate(ProjectBase):
+    team_id: int | None = None
+
+
+class ProjectUpdate(BaseModel):
+    name: str | None = None
+    description: str | None = None
+    status: ProjectStatus | None = None
+
+
+class ProjectResponse(ProjectBase):
     id: int
-    name: str
-    description: Optional[str]
+    created_by: int
+    approved_by: int | None = None
+    approved_at: datetime | None = None
+    rejected_by: int | None = None
+    rejected_at: datetime | None = None
+    team_id: int | None = None
+    created_at: datetime
+    updated_at: datetime
 
-
-class Config:
-    orm_mode = True
+    class Config:
+        orm_mode = True

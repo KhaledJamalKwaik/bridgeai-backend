@@ -4,6 +4,8 @@ from app.core.config import settings
 from app.db.session import engine, Base
 from app.api import router as api_router
 from app.api import auth
+from app.api import gateway as gateway_router
+from app.middleware.rate_limiter import RateLimitMiddleware
 from app import __version__
 
 app = FastAPI(
@@ -25,12 +27,17 @@ app.add_middleware(
     allow_headers=["*"],  # allow all headers
 )
 
+# Add rate limiting middleware. This is an in-memory limiter suitable for dev or
+# single-process deployments. For production, replace with a distributed limiter.
+app.add_middleware(RateLimitMiddleware)
+
 # ✅ Create database tables (optional)
 # Base.metadata.create_all(bind=engine)
 
 # ✅ Include routers
 app.include_router(api_router, prefix="/api")
 app.include_router(auth.router)  # make sure this defines /auth/token
+app.include_router(gateway_router.router)
 
 @app.get("/")
 def root():

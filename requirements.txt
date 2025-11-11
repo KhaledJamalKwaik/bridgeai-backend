@@ -13,3 +13,4 @@ chromadb
 langgraph
 alembic
 python-multipart
+httpx>=0.24.0

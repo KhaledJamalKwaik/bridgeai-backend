@@ -4,11 +4,12 @@ Covers persistence, versioning, status updates, and retrieval operations.
 """
 import json
 
+from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
 import app.models  # ensures all tables are registered with Base metadata
-from app.db.session import Base
+from app.db.session import Base, get_db
 from app.models.crs import CRSStatus
 from app.services.crs_service import (
     get_latest_crs,
@@ -23,6 +24,50 @@ def _in_memory_session():
     engine = create_engine("sqlite:///:memory:")
     Base.metadata.create_all(engine)
     return sessionmaker(bind=engine)()
+
+
+client = TestClient(app)
+
+def override_get_db():
+    db = _in_memory_session()
+    try:
+        yield db
+    finally:
+        db.close()
+
+app.dependency_overrides[get_db] = override_get_db
+
+
+def test_create_crs_draft():
+    """Test creating a draft CRS document."""
+    payload = {
+        "project_id": 1,
+        "content": "{\"title\": \"Draft CRS\"}",
+        "summary_points": ["Draft Point A", "Draft Point B"]
+    }
+
+    response = client.post("/crs/draft", json=payload)
+
+    assert response.status_code == 201
+    data = response.json()
+    assert data["status"] == CRSStatus.draft.value
+    assert data["content"] == payload["content"]
+    assert data["summary_points"] == payload["summary_points"]
+
+
+def test_fetch_crs_draft():
+    """Test fetching the latest draft CRS document."""
+    # Create a draft CRS first
+    test_create_crs_draft()
+
+    response = client.get("/crs/draft/1")
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["status"] == CRSStatus.draft.value
+    assert data["project_id"] == 1
+    assert "content" in data
+    assert "summary_points" in data
 
 
 def test_persist_and_fetch_latest_crs():

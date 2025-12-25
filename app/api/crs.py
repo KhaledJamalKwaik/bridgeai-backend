@@ -76,6 +76,40 @@ def create_crs(
     )
 
 
+@router.post("/draft", response_model=CRSOut, status_code=status.HTTP_201_CREATED)
+def create_crs_draft(
+    payload: CRSCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """
+    Create and persist a draft CRS document for a project.
+    """
+    project = get_project_or_404(db, payload.project_id)
+    verify_team_membership(db, project.team_id, current_user.id)
+
+    crs = persist_crs_document(
+        db,
+        project_id=payload.project_id,
+        created_by=current_user.id,
+        content=payload.content,
+        summary_points=payload.summary_points,
+        store_embedding=False,  # Drafts may not need embeddings initially
+    )
+
+    return CRSOut(
+        id=crs.id,
+        project_id=crs.project_id,
+        status=crs.status.value,
+        version=crs.version,
+        content=crs.content,
+        summary_points=json.loads(crs.summary_points),
+        created_by=crs.created_by,
+        approved_by=crs.approved_by,
+        created_at=crs.created_at,
+    )
+
+
 @router.get("/latest", response_model=Optional[CRSOut])
 def read_latest_crs(
     project_id: int,
@@ -201,4 +235,40 @@ def update_crs_status_endpoint(
         created_by=updated_crs.created_by,
         approved_by=updated_crs.approved_by,
         created_at=updated_crs.created_at,
+    )
+
+
+@router.get("/draft/{project_id}", response_model=CRSOut)
+def fetch_crs_draft(
+    project_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """
+    Fetch the latest draft CRS document for a project.
+    """
+    project = get_project_or_404(db, project_id)
+    verify_team_membership(db, project.team_id, current_user.id)
+
+    latest_draft = db.query(CRSDocument).filter(
+        CRSDocument.project_id == project_id,
+        CRSDocument.status == CRSStatus.draft
+    ).order_by(CRSDocument.version.desc()).first()
+
+    if not latest_draft:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="No draft CRS document found for this project."
+        )
+
+    return CRSOut(
+        id=latest_draft.id,
+        project_id=latest_draft.project_id,
+        status=latest_draft.status.value,
+        version=latest_draft.version,
+        content=latest_draft.content,
+        summary_points=json.loads(latest_draft.summary_points),
+        created_by=latest_draft.created_by,
+        approved_by=latest_draft.approved_by,
+        created_at=latest_draft.created_at,
     )

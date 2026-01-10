@@ -12,6 +12,7 @@ import logging
 
 from langchain_groq import ChatGroq
 from langchain_core.prompts import ChatPromptTemplate
+from app.ai.llm_factory import get_template_filler_llm
 
 logger = logging.getLogger(__name__)
 
@@ -197,24 +198,15 @@ IMPORTANT: Return ONLY a valid JSON object without any markdown formatting.
 Return pure JSON now:
 """
 
-    def __init__(self, model: str = "llama-3.3-70b-versatile", temperature: float = 0.2):
+    def __init__(self):
         """
         Initialize the template filler with Groq LLM.
         
-        Args:
-            model: Groq model to use
-            temperature: Lower temperature for more consistent structured output
+        Model configuration is now centralized in app.core.config.
+        To change the model, update the LLM_TEMPLATE_FILLER_MODEL setting in your .env file.
         """
-        api_key = os.getenv("GROQ_API_KEY")
-        if not api_key:
-            raise ValueError("GROQ_API_KEY missing in environment.")
-
-        self.llm = ChatGroq(
-            model=model,
-            groq_api_key=api_key,
-            temperature=temperature,
-            max_tokens=4096
-        )
+        # Use centralized LLM factory
+        self.llm = get_template_filler_llm()
 
         self.extraction_prompt = ChatPromptTemplate.from_template(self.EXTRACTION_PROMPT)
         self.summary_prompt = ChatPromptTemplate.from_template(self.SUMMARY_PROMPT)

@@ -4,17 +4,11 @@ LLM-powered Creative Suggestions Generator
 import json
 import logging
 from typing import Dict, List, Any
-from openai import OpenAI
 from app.core.config import settings
+from app.ai.llm_factory import get_suggestions_llm
+from langchain_core.messages import SystemMessage, HumanMessage
 
 logger = logging.getLogger(__name__)
-
-# Initialize OpenAI client
-# Initialize OpenAI client with Groq configuration
-client = OpenAI(
-    api_key=settings.GROQ_API_KEY,
-    base_url="https://api.groq.com/openai/v1"
-)
 
 
 def generate_creative_suggestions(
@@ -32,25 +26,22 @@ def generate_creative_suggestions(
         List of creative suggestions
     """
     try:
+        # Get LLM instance from factory
+        llm = get_suggestions_llm()
+        
+        # Build the prompt
         prompt = _build_suggestions_prompt(project_context, current_input)
         
-        response = client.chat.completions.create(
-            model="llama-3.3-70b-versatile",
-            messages=[
-                {
-                    "role": "system",
-                    "content": "You are a creative software analyst who excels at identifying opportunities for additional features, alternative scenarios, and system enhancements. You think beyond the obvious requirements to propose valuable additions."
-                },
-                {
-                    "role": "user",
-                    "content": prompt
-                }
-            ],
-            temperature=0.7,  # Higher creativity
-            max_tokens=2000
-        )
+        # Create messages for LangChain
+        messages = [
+            SystemMessage(content="You are a creative software analyst who excels at identifying opportunities for additional features, alternative scenarios, and system enhancements. You think beyond the obvious requirements to propose valuable additions."),
+            HumanMessage(content=prompt)
+        ]
         
-        suggestions_text = response.choices[0].message.content
+        # Invoke LLM
+        response = llm.invoke(messages)
+        suggestions_text = response.content
+        
         suggestions = _parse_suggestions_response(suggestions_text)
         
         logger.info(f"Generated {len(suggestions)} creative suggestions")

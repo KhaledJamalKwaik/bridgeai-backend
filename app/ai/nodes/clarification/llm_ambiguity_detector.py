@@ -7,6 +7,7 @@ import logging
 
 from langchain_groq import ChatGroq
 from langchain_core.prompts import ChatPromptTemplate
+from app.ai.llm_factory import get_clarification_llm
 
 logger = logging.getLogger(__name__)
 
@@ -110,26 +111,21 @@ Your response must be a pure JSON object with this exact structure:
 Return pure JSON now:
 """
 
-    def __init__(self, model: str = "llama-3.3-70b-versatile", temperature: float = 0.3):
+    def __init__(self):
         """
         Initialize the ambiguity detector with Groq LLM.
         
-        Available models (as of Dec 2024):
+        Model configuration is now centralized in app.core.config.
+        To change the model, update the LLM_CLARIFICATION_MODEL setting in your .env file.
+        
+        Available models:
         - llama-3.3-70b-versatile (recommended for structured output)
         - llama-3.1-8b-instant (faster but less capable)
         - mixtral-8x7b-32768 (good alternative)
         - gemma2-9b-it (smaller, faster)
         """
-        api_key = os.getenv("GROQ_API_KEY")
-        if not api_key:
-            raise ValueError("GROQ_API_KEY missing in environment.")
-
-        self.llm = ChatGroq(
-            model=model,
-            groq_api_key=api_key,
-            temperature=temperature,
-            max_tokens=2048
-        )
+        # Use centralized LLM factory
+        self.llm = get_clarification_llm()
 
         self.analysis_prompt = ChatPromptTemplate.from_template(self.ANALYSIS_PROMPT)
         self.question_prompt = ChatPromptTemplate.from_template(self.QUESTION_PROMPT)

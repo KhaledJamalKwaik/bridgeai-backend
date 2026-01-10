@@ -48,6 +48,25 @@ def suggestions_node(state: AgentState) -> AgentState:
         state["suggestions"] = suggestions
         state["suggestions_generated"] = True
         
+        # Format output for user
+        if suggestions:
+            response = "Here are some suggestions based on your project:\n\n"
+            for i, suggestion in enumerate(suggestions, 1):
+                category = suggestion.get('category', '').replace('_', ' ').title()
+                title = suggestion.get('title', 'Suggestion')
+                description = suggestion.get('description', '')
+                value = suggestion.get('value_proposition', '')
+                complexity = suggestion.get('complexity', 'Medium')
+                
+                response += f"{i}. **{title}** ({category})\n"
+                response += f"   {description}\n"
+                if value:
+                    response += f"   💡 *Value: {value}*\n"
+                response += f"   ⚙️ Complexity: {complexity}\n\n"
+            state["output"] = response
+        else:
+            state["output"] = "I don't have any additional suggestions at this time."
+        
         logger.info(f"Generated {len(suggestions)} creative suggestions for project {project_id}")
         return state
         

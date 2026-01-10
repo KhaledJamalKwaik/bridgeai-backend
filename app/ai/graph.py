@@ -45,12 +45,36 @@ def create_graph():
     # ----------------------------
     # CONDITIONAL ROUTING LOGIC
     # ----------------------------
+    def route_after_clarification(state: AgentState) -> str:
+        """
+        Route after clarification based on:
+        1. If clarification needed → END
+        2. If suggestions requested → suggestions
+        3. Otherwise → template_filler
+        """
+        # Check if user is asking for suggestions FIRST
+        user_input = state.get("user_input", "").lower()
+        suggestion_keywords = [
+            "suggest", "suggestion", "recommend", "additional", "more features",
+            "what else", "enhance", "improve", "extend", "expand", "ideas"
+        ]
+        
+        if any(keyword in user_input for keyword in suggestion_keywords):
+            return "suggestions"
+
+        # Then check if clarification is needed
+        if should_request_clarification(state):
+            return "end"
+        # Default: continue to template filler
+        return "template_filler"
+    
     graph.add_conditional_edges(
         "clarification",
-        should_request_clarification,     # function returns: True or False
+        route_after_clarification,
         {
-            True: END,                    # If clarification needed → stop workflow
-            False: "template_filler"      # Otherwise continue to template filler
+            "end": END,                      # If clarification needed → stop workflow
+            "suggestions": "suggestions",    # If suggestions requested → suggestions
+            "template_filler": "template_filler"  # Otherwise continue to template filler
         }
     )
 

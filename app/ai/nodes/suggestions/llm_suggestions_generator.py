@@ -10,7 +10,11 @@ from app.core.config import settings
 logger = logging.getLogger(__name__)
 
 # Initialize OpenAI client
-client = OpenAI(api_key=settings.GROQ_API_KEY)
+# Initialize OpenAI client with Groq configuration
+client = OpenAI(
+    api_key=settings.GROQ_API_KEY,
+    base_url="https://api.groq.com/openai/v1"
+)
 
 
 def generate_creative_suggestions(
@@ -31,7 +35,7 @@ def generate_creative_suggestions(
         prompt = _build_suggestions_prompt(project_context, current_input)
         
         response = client.chat.completions.create(
-            model="gpt-4",
+            model="llama-3.3-70b-versatile",
             messages=[
                 {
                     "role": "system",

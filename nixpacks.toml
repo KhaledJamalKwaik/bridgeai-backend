@@ -1,8 +1,12 @@
 [phases.setup]
-nixPkgs = ["cairo", "pkg-config", "gobject-introspection", "glib", "libffi"]
+nixPkgs = ["cairo", "pkg-config", "gobject-introspection", "glib", "libffi", "python3"]
 
 [phases.install]
-cmds = ["pip install -r requirements.txt"]
+cmds = [
+  "pip install --upgrade pip",
+  "pip install pycairo --no-cache-dir",
+  "pip install -r requirements.txt"
+]
 
 [start]
 cmd = "uvicorn app.main:app --host 0.0.0.0 --port $PORT"

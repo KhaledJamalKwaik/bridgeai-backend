@@ -1,5 +1,6 @@
 [phases.setup]
-nixPkgs = ["...", "cairo", "pkg-config", "gobject-introspection"]
+nixPkgs = ["cairo", "pkg-config", "gobject-introspection", "glib", "libffi"]
+
 [phases.install]
 cmds = ["pip install -r requirements.txt"]
 

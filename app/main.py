@@ -19,15 +19,33 @@ from starlette.middleware.base import BaseHTTPMiddleware
 # 1. LIFESPAN: This is the secret. The app "starts" first, THEN runs this.
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    # Initialize state immediately so the server can bind to port
+    app.state.chroma_client = None
+    app.state.chroma_collection = None
+    app.state.chroma_initialized = False
+    
     # This runs AFTER the server starts listening on the port
-    logging.info("Starting heavy initialization...")
-    try:
-        chroma_client, chroma_collection = initialize_chroma()
-        app.state.chroma_client = chroma_client
-        app.state.chroma_collection = chroma_collection
-        logging.info("ChromaDB successfully initialized in background.")
-    except Exception as e:
-        logging.error(f"ChromaDB failed: {str(e)}")
+    logging.info("Server started, initializing ChromaDB in background...")
+    
+    # Run ChromaDB initialization in background (non-blocking)
+    import asyncio
+    async def init_chroma():
+        try:
+            # Run blocking initialization in thread pool to avoid blocking startup
+            loop = asyncio.get_event_loop()
+            chroma_client, chroma_collection = await loop.run_in_executor(
+                None, initialize_chroma
+            )
+            app.state.chroma_client = chroma_client
+            app.state.chroma_collection = chroma_collection
+            app.state.chroma_initialized = True
+            logging.info("ChromaDB successfully initialized in background.")
+        except Exception as e:
+            logging.error(f"ChromaDB initialization failed: {str(e)}")
+            logging.warning("App will continue without ChromaDB features.")
+    
+    # Start initialization without awaiting (truly non-blocking)
+    asyncio.create_task(init_chroma())
     
     yield  # The app stays running here
     

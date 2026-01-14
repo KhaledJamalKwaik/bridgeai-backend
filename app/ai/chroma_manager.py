@@ -132,7 +132,7 @@ def get_collection(app=None):
         app: FastAPI app instance (optional, for backward compatibility)
     
     Returns:
-        ChromaDB collection object
+        ChromaDB collection object or None if not initialized
     
     Note:
         Prefers app.state.chroma_collection (set by main.py)
@@ -141,14 +141,18 @@ def get_collection(app=None):
     global _collection, _is_initialized
     
     # Prefer app.state if available (singleton pattern)
-    if app and hasattr(app, 'state') and hasattr(app.state, 'chroma_collection'):
-        return app.state.chroma_collection
+    if app and hasattr(app, 'state'):
+        if not getattr(app.state, 'chroma_initialized', False):
+            logger.warning("ChromaDB not yet initialized, returning None")
+            return None
+        if hasattr(app.state, 'chroma_collection'):
+            return app.state.chroma_collection
     
     # Fallback to global for backward compatibility
     if _collection is None:
         if not _is_initialized:
-            logger.warning("ChromaDB not initialized yet, initializing now...")
-        initialize_chroma()
+            logger.warning("ChromaDB not initialized, returning None")
+            return None
     return _collection
 
 
@@ -185,6 +189,10 @@ def store_embedding(
     """
     try:
         collection = get_collection()
+        
+        if collection is None:
+            logger.warning(f"ChromaDB not initialized, skipping embedding storage for {embedding_id}")
+            return embedding_id  # Return gracefully
         
         logger.debug(f"Storing embedding: {embedding_id} ({len(text)} chars)")
         
@@ -237,6 +245,10 @@ def store_embeddings_batch(
     try:
         collection = get_collection()
         
+        if collection is None:
+            logger.warning(f"ChromaDB not initialized, skipping batch storage of {len(embedding_ids)} embeddings")
+            return embedding_ids  # Return gracefully
+        
         logger.info(f"Batch storing {len(embedding_ids)} embeddings")
         
         collection.add(
@@ -286,6 +298,10 @@ def search_embeddings(
     try:
         collection = get_collection()
         
+        if collection is None:
+            logger.warning("ChromaDB not initialized, returning empty search results")
+            return []  # Return empty results gracefully
+        
         # Build metadata filter
         where_filter = {"project_id": {"$eq": project_id}}
         if source_type:
@@ -332,6 +348,11 @@ def get_embedding(embedding_id: str) -> Optional[Dict[str, Any]]:
     """
     try:
         collection = get_collection()
+        
+        if collection is None:
+            logger.warning("ChromaDB not initialized, cannot retrieve embedding")
+            return None
+        
         result = collection.get(ids=[embedding_id])
         
         if result and result['ids']:
@@ -358,6 +379,11 @@ def delete_embedding(embedding_id: str) -> bool:
     """
     try:
         collection = get_collection()
+        
+        if collection is None:
+            logger.warning("ChromaDB not initialized, skipping embedding deletion")
+            return True  # Return success to not break the flow
+        
         collection.delete(ids=[embedding_id])
         logger.info(f"Deleted embedding: {embedding_id}")
         return True
@@ -378,6 +404,11 @@ def get_project_memory_count(project_id: int) -> int:
     """
     try:
         collection = get_collection()
+        
+        if collection is None:
+            logger.warning("ChromaDB not initialized, returning 0 for memory count")
+            return 0
+        
         count = collection.count()
         # Note: ChromaDB doesn't have direct filtering count, 
         # so we query and count results

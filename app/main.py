@@ -25,27 +25,28 @@ async def lifespan(app: FastAPI):
     app.state.chroma_initialized = False
     
     # This runs AFTER the server starts listening on the port
-    logging.info("Server started, initializing ChromaDB in background...")
+    # ChromaDB initialization temporarily disabled for Render free tier
+    logging.info("Server started, ChromaDB initialization is disabled (Render free tier mode)")
     
     # Run ChromaDB initialization in background (non-blocking)
-    import asyncio
-    async def init_chroma():
-        try:
-            # Run blocking initialization in thread pool to avoid blocking startup
-            loop = asyncio.get_event_loop()
-            chroma_client, chroma_collection = await loop.run_in_executor(
-                None, initialize_chroma
-            )
-            app.state.chroma_client = chroma_client
-            app.state.chroma_collection = chroma_collection
-            app.state.chroma_initialized = True
-            logging.info("ChromaDB successfully initialized in background.")
-        except Exception as e:
-            logging.error(f"ChromaDB initialization failed: {str(e)}")
-            logging.warning("App will continue without ChromaDB features.")
+    # import asyncio
+    # async def init_chroma():
+    #     try:
+    #         # Run blocking initialization in thread pool to avoid blocking startup
+    #         loop = asyncio.get_event_loop()
+    #         chroma_client, chroma_collection = await loop.run_in_executor(
+    #             None, initialize_chroma
+    #         )
+    #         app.state.chroma_client = chroma_client
+    #         app.state.chroma_collection = chroma_collection
+    #         app.state.chroma_initialized = True
+    #         logging.info("ChromaDB successfully initialized in background.")
+    #     except Exception as e:
+    #         logging.error(f"ChromaDB initialization failed: {str(e)}")
+    #         logging.warning("App will continue without ChromaDB features.")
     
     # Start initialization without awaiting (truly non-blocking)
-    asyncio.create_task(init_chroma())
+    # asyncio.create_task(init_chroma())
     
     yield  # The app stays running here
     

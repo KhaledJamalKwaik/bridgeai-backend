@@ -1,0 +1,31 @@
+# Lightweight requirements for Render free tier (512MB RAM limit)
+# Excludes ChromaDB and heavy ML dependencies
+
+fastapi
+uvicorn[standard]
+websockets
+sqlalchemy
+pydantic
+pydantic-settings
+pymysql
+python-dotenv
+bcrypt==4.1.2
+passlib[bcrypt]==1.7.4
+python-jose[cryptography]
+jinja2
+# chromadb  # DISABLED - consumes ~200MB RAM
+# langgraph  # DISABLED - consumes ~100MB RAM
+alembic
+python-multipart
+slowapi==0.1.9
+pytest
+httpx
+email-validator
+# langchain-openai>=0.1.0  # DISABLED
+# langchain-core>=0.1.0  # DISABLED
+openai>=1.0.0
+groq
+# langchain-groq  # DISABLED
+# sentence_transformers  # DISABLED - consumes ~500MB RAM with models
+markdown
+xhtml2pdf

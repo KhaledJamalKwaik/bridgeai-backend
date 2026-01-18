@@ -15,7 +15,8 @@ logger = logging.getLogger(__name__)
 
 
 import uuid
-from app.ai import chroma_manager
+# ChromaDB imports disabled to save memory on Render free tier
+# from app.ai import chroma_manager
 from app.models.ai_memory_index import AIMemoryIndex, SourceType
 
 def create_comment(
@@ -57,43 +58,45 @@ def create_comment(
     
     logger.info(f"Comment {comment.id} created on CRS {crs_id} by user {author_id}")
     
+    # ChromaDB disabled for Render free tier - skip AI memory storage
+    logger.debug(f"ChromaDB disabled - skipping AI memory storage for comment {comment.id}")
     # Store in AI Memory (ChromaDB)
-    try:
-        embedding_id = str(uuid.uuid4())
-        
-        # Get author details for metadata
-        author = db.query(User).filter(User.id == author_id).first()
-        author_role = author.role.value if author else "unknown"
-        
-        # Store in Vector DB
-        chroma_manager.store_embedding(
-            embedding_id=embedding_id,
-            text=content,
-            metadata={
-                "project_id": crs.project_id,
-                "source_type": SourceType.comment.value,
-                "source_id": comment.id,
-                "author_id": author_id,
-                "author_role": author_role,
-                "crs_id": crs_id
-            }
-        )
-        
-        # Create Index Record
-        index_record = AIMemoryIndex(
-            project_id=crs.project_id,
-            source_type=SourceType.comment,
-            source_id=comment.id,
-            embedding_id=embedding_id
-        )
-        db.add(index_record)
-        db.commit()
-        logger.info(f"Comment {comment.id} stored in AI memory with id {embedding_id}")
-        
-    except Exception as e:
-        logger.error(f"Failed to store comment {comment.id} in AI memory: {str(e)}")
-        # We don't rollback the comment creation as it's the primary action
-        pass
+    # try:
+    #     embedding_id = str(uuid.uuid4())
+    #     
+    #     # Get author details for metadata
+    #     author = db.query(User).filter(User.id == author_id).first()
+    #     author_role = author.role.value if author else "unknown"
+    #     
+    #     # Store in Vector DB
+    #     chroma_manager.store_embedding(
+    #         embedding_id=embedding_id,
+    #         text=content,
+    #         metadata={
+    #             "project_id": crs.project_id,
+    #             "source_type": SourceType.comment.value,
+    #             "source_id": comment.id,
+    #             "author_id": author_id,
+    #             "author_role": author_role,
+    #             "crs_id": crs_id
+    #         }
+    #     )
+    #     
+    #     # Create Index Record
+    #     index_record = AIMemoryIndex(
+    #         project_id=crs.project_id,
+    #         source_type=SourceType.comment,
+    #         source_id=comment.id,
+    #         embedding_id=embedding_id
+    #     )
+    #     db.add(index_record)
+    #     db.commit()
+    #     logger.info(f"Comment {comment.id} stored in AI memory with id {embedding_id}")
+    #     
+    # except Exception as e:
+    #     logger.error(f"Failed to store comment {comment.id} in AI memory: {str(e)}")
+    #     # We don't rollback the comment creation as it's the primary action
+    #     pass
     
     return comment
 
@@ -175,39 +178,41 @@ def update_comment(
     
     logger.info(f"Comment {comment_id} updated")
     
+    # ChromaDB disabled for Render free tier - skip AI memory update
+    logger.debug(f"ChromaDB disabled - skipping AI memory update for comment {comment_id}")
     # Update in AI Memory
-    try:
-        # Find associated index record
-        index_record = db.query(AIMemoryIndex).filter(
-            AIMemoryIndex.source_type == SourceType.comment,
-            AIMemoryIndex.source_id == comment_id
-        ).first()
-        
-        if index_record:
-            # Get CRS project_id (need to join or fetch)
-            crs = db.query(CRSDocument).filter(CRSDocument.id == comment.crs_id).first()
-            project_id = crs.project_id if crs else 0
-            
-            author = db.query(User).filter(User.id == comment.author_id).first()
-            author_role = author.role.value if author else "unknown"
-            
-            # Simple re-store (upsert)
-            chroma_manager.store_embedding(
-                embedding_id=index_record.embedding_id,
-                text=content,
-                metadata={
-                    "project_id": project_id,
-                    "source_type": SourceType.comment.value,
-                    "source_id": comment_id,
-                    "author_id": comment.author_id,
-                    "author_role": author_role,
-                    "crs_id": comment.crs_id
-                }
-            )
-            logger.info(f"Comment {comment_id} updated in AI memory")
-            
-    except Exception as e:
-        logger.error(f"Failed to update comment {comment_id} in AI memory: {str(e)}")
+    # try:
+    #     # Find associated index record
+    #     index_record = db.query(AIMemoryIndex).filter(
+    #         AIMemoryIndex.source_type == SourceType.comment,
+    #         AIMemoryIndex.source_id == comment_id
+    #     ).first()
+    #     
+    #     if index_record:
+    #         # Get CRS project_id (need to join or fetch)
+    #         crs = db.query(CRSDocument).filter(CRSDocument.id == comment.crs_id).first()
+    #         project_id = crs.project_id if crs else 0
+    #         
+    #         author = db.query(User).filter(User.id == comment.author_id).first()
+    #         author_role = author.role.value if author else "unknown"
+    #         
+    #         # Simple re-store (upsert)
+    #         chroma_manager.store_embedding(
+    #             embedding_id=index_record.embedding_id,
+    #             text=content,
+    #             metadata={
+    #                 "project_id": project_id,
+    #                 "source_type": SourceType.comment.value,
+    #                 "source_id": comment_id,
+    #                 "author_id": comment.author_id,
+    #                 "author_role": author_role,
+    #                 "crs_id": comment.crs_id
+    #             }
+    #         )
+    #         logger.info(f"Comment {comment_id} updated in AI memory")
+    #         
+    # except Exception as e:
+    #     logger.error(f"Failed to update comment {comment_id} in AI memory: {str(e)}")
     
     return comment
 
@@ -231,19 +236,21 @@ def delete_comment(
     if not comment:
         return False
     
+    # ChromaDB disabled for Render free tier - skip AI memory deletion
+    logger.debug(f"ChromaDB disabled - skipping AI memory deletion for comment {comment_id}")
     # Delete from AI Memory first (to retrieve index before deleting comment if needed, though index likely remains)
-    try:
-        index_record = db.query(AIMemoryIndex).filter(
-            AIMemoryIndex.source_type == SourceType.comment,
-            AIMemoryIndex.source_id == comment_id
-        ).first()
-        
-        if index_record:
-            chroma_manager.delete_embedding(index_record.embedding_id)
-            db.delete(index_record)
-            # We don't commit yet, we commit with comment deletion to be atomic-ish
-    except Exception as e:
-        logger.error(f"Failed to delete comment {comment_id} from AI memory: {str(e)}")
+    # try:
+    #     index_record = db.query(AIMemoryIndex).filter(
+    #         AIMemoryIndex.source_type == SourceType.comment,
+    #         AIMemoryIndex.source_id == comment_id
+    #     ).first()
+    #     
+    #     if index_record:
+    #         chroma_manager.delete_embedding(index_record.embedding_id)
+    #         db.delete(index_record)
+    #         # We don't commit yet, we commit with comment deletion to be atomic-ish
+    # except Exception as e:
+    #     logger.error(f"Failed to delete comment {comment_id} from AI memory: {str(e)}")
 
     db.delete(comment)
     db.commit()

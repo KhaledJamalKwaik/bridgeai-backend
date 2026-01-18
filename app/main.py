@@ -13,7 +13,8 @@ from app.db.session import engine, Base
 from app.api import router as api_router
 from app.api import auth
 from app import __version__
-from app.ai.chroma_manager import initialize_chroma
+# ChromaDB import disabled to save memory on Render free tier
+# from app.ai.chroma_manager import initialize_chroma
 from starlette.middleware.base import BaseHTTPMiddleware
 
 # 1. LIFESPAN: This is the secret. The app "starts" first, THEN runs this.

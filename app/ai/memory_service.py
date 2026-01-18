@@ -7,7 +7,8 @@ from typing import List, Dict, Any, Optional
 from datetime import datetime
 from sqlalchemy.orm import Session
 from app.models.ai_memory_index import AIMemoryIndex, SourceType
-from app.ai.chroma_manager import store_embedding, search_embeddings, delete_embedding
+# ChromaDB imports disabled to save memory on Render free tier
+# from app.ai.chroma_manager import store_embedding, search_embeddings, delete_embedding
 import logging
 
 logger = logging.getLogger(__name__)
@@ -72,14 +73,14 @@ def create_memory(
             chroma_metadata.update(metadata)
         
         # ========== PHASE 2: ChromaDB Storage ==========
-        # Store in ChromaDB - THIS CAN FAIL
-        store_embedding(
-            embedding_id=embedding_id,
-            text=text,
-            metadata=chroma_metadata
-        )
-        
-        logger.debug(f"Embedding stored in ChromaDB for {embedding_id}")
+        # ChromaDB disabled for Render free tier - skip embedding storage
+        logger.warning(f"ChromaDB disabled - skipping embedding storage for {embedding_id}")
+        # store_embedding(
+        #     embedding_id=embedding_id,
+        #     text=text,
+        #     metadata=chroma_metadata
+        # )
+        # logger.debug(f"Embedding stored in ChromaDB for {embedding_id}")
         
         # ========== COMMIT: Both systems ==========
         db.commit()
@@ -155,13 +156,17 @@ def search_project_memories(
         List of relevant memories with similarity scores
     """
     try:
+        # ChromaDB disabled for Render free tier - return empty results
+        logger.warning(f"ChromaDB disabled - returning empty search results for project {project_id}")
+        return []
+        
         # Search ChromaDB
-        chroma_results = search_embeddings(
-            query=query,
-            project_id=project_id,
-            n_results=limit,
-            distance_threshold=similarity_threshold
-        )
+        # chroma_results = search_embeddings(
+        #     query=query,
+        #     project_id=project_id,
+        #     n_results=limit,
+        #     distance_threshold=similarity_threshold
+        # )
         
         # Enrich with MySQL data
         enriched_results = []
@@ -214,8 +219,9 @@ def delete_memory(
             db.delete(memory)
             db.flush()
         
-        # Delete from ChromaDB
-        delete_embedding(embedding_id)
+        # ChromaDB disabled for Render free tier - skip embedding deletion
+        logger.warning(f"ChromaDB disabled - skipping embedding deletion for {embedding_id}")
+        # delete_embedding(embedding_id)
         
         db.commit()
         logger.info(f"Deleted memory {embedding_id}")

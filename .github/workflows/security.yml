@@ -41,7 +41,7 @@ jobs:
       continue-on-error: true
 
     - name: Upload Safety report
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v6
       if: always()
       with:
         name: safety-report
@@ -80,7 +80,7 @@ jobs:
           --exclude tests/ || echo "::warning::Security issues found by Bandit"
 
     - name: Upload Bandit report
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v6
       if: always()
       with:
         name: bandit-report

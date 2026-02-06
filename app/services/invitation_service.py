@@ -41,6 +41,56 @@ class InvitationService:
         return repo.get_by_token(token)
 
     @staticmethod
+    def check_invitation(db: Session, token: str):
+        """
+        Check invitation validity and user registration status.
+        Used by frontend to determine if redirect to registration is needed.
+        
+        Args:
+            db: Database session
+            token: Invitation token
+            
+        Returns:
+            Dictionary with invitation details and registration status
+        """
+        from app.repositories import UserRepository
+        
+        repo = InvitationRepository(db)
+        invitation = repo.get_by_token(token)
+        
+        if not invitation:
+            return {
+                "valid": False,
+                "error": "Invitation not found"
+            }
+        
+        # Check if invitation is valid (not expired, status is pending)
+        if not invitation.is_valid():
+            return {
+                "valid": False,
+                "error": "Invitation has expired or is no longer valid"
+            }
+        
+        # Check if user is registered
+        user_repo = UserRepository(db)
+        user = user_repo.get_by_email(invitation.email)
+        
+        # Get team details
+        team_repo = TeamRepository(db)
+        team = team_repo.get_by_id(invitation.team_id)
+        
+        return {
+            "valid": True,
+            "email": invitation.email,
+            "team_name": team.name if team else "Unknown",
+            "inviter_name": invitation.inviter.full_name if invitation.inviter else "Unknown",
+            "role": invitation.role,
+            "user_registered": user is not None,
+            "requires_registration": user is None,
+        }
+
+
+    @staticmethod
     def get_invitation_details(
         db: Session, token: str
     ) -> InvitationPublicOut:
@@ -134,8 +184,8 @@ class InvitationService:
                 raise ValueError("You are already a member of this team")
             else:
                 # Check team size before reactivating
-                if active_member_count >= 2:
-                    raise ValueError("Team is at maximum capacity (2 members: Client + BA)")
+                # if active_member_count >= 2:
+                #     raise ValueError("Team is at maximum capacity (2 members: Client + BA)")
                 
                 # Reactivate the member with role based on user's role
                 existing_member.is_active = True
@@ -152,8 +202,8 @@ class InvitationService:
                 )
 
         # Check team size before creating new member
-        if active_member_count >= 2:
-            raise ValueError("Team is at maximum capacity (2 members: Client + BA)")
+        # if active_member_count >= 2:
+        #     raise ValueError("Team is at maximum capacity (2 members: Client + BA)")
 
         # Create new team membership with role based on user's role
         team_role = TeamRole.client if current_user.role.value == "client" else TeamRole.ba

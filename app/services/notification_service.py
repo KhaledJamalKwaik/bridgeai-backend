@@ -163,20 +163,16 @@ def notify_invitation_accepted(
     commit: bool = True,
 ) -> Notification:
     """Notify team owner when someone accepts invitation."""
-    from app.repositories.team_repository import TeamMemberRepository
-    from app.models.team import TeamRole
+    from app.models.team import Team
     
-    # Get team owner
-    team_member_repo = TeamMemberRepository(db)
-    owner_members = team_member_repo.get_team_members(team_id, role=TeamRole.owner)
-    if not owner_members:
+    # Get team creator (owner)
+    team = db.query(Team).filter(Team.id == team_id).first()
+    if not team or not team.created_by:
         return None
-    
-    owner = owner_members[0]  # Get first owner
     
     return create_notification(
         db=db,
-        user_id=owner.user_id,
+        user_id=team.created_by,
         notification_type=NotificationType.TEAM_INVITATION,
         reference_id=team_id,
         title="New Team Member",

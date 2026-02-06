@@ -88,7 +88,7 @@ def test_team_member(test_db, test_user, test_team):
     member = TeamMember(
         team_id=test_team.id,
         user_id=test_user.id,
-        role=TeamRole.owner
+        role=TeamRole.ba
     )
     test_db.add(member)
     test_db.commit()

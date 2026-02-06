@@ -189,18 +189,18 @@ class TeamService:
     def add_member(
         db: Session, team_id: int, user_id: int, role: TeamRole, current_user: User
     ) -> TeamMember:
-        """Add a member to the team. Teams are limited to 2 members (Client + BA)."""
+        """Add a member to the team."""
         # Check if team exists
         team = PermissionService.get_team_or_404(db, team_id)
 
-        # Check current team size - enforce 2-member limit
+        # Check current team size - enforce 2-member limit - REMOVED
         team_member_repo = TeamMemberRepository(db)
-        active_member_count = team_member_repo.get_active_member_count(team_id)
-        if active_member_count >= 2:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Team is at maximum capacity (2 members: Client + BA)",
-            )
+        # active_member_count = team_member_repo.get_active_member_count(team_id)
+        # if active_member_count >= 2:
+        #     raise HTTPException(
+        #         status_code=status.HTTP_400_BAD_REQUEST,
+        #         detail="Team is at maximum capacity (2 members: Client + BA)",
+        #     )
 
         # Check if user exists
         user_repo = UserRepository(db)
@@ -299,7 +299,7 @@ class TeamService:
 
         # Mark member as inactive instead of deleting
         member.is_active = False
-        team_member_repo.update(member)
+        updated_member = team_member_repo.update(member)
 
         return {"message": "Team member removed successfully"}
 
@@ -338,18 +338,18 @@ class TeamService:
     def invite_member(
         db: Session, team_id: int, email: str, role: str, current_user: User
     ) -> Dict[str, Any]:
-        """Invite a user to join the team by email. Teams are limited to 2 members (Client + BA)."""
+        """Invite a user to join the team by email."""
         # Check if team exists
         team = PermissionService.get_team_or_404(db, team_id)
 
-        # Check current team size - enforce 2-member limit
+        # Check current team size - enforce 2-member limit - REMOVED
         team_member_repo = TeamMemberRepository(db)
-        active_member_count = team_member_repo.get_active_member_count(team_id)
-        if active_member_count >= 2:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Team is at maximum capacity (2 members: Client + BA)",
-            )
+        # active_member_count = team_member_repo.get_active_member_count(team_id)
+        # if active_member_count >= 2:
+        #     raise HTTPException(
+        #         status_code=status.HTTP_400_BAD_REQUEST,
+        #         detail="Team is at maximum capacity (2 members: Client + BA)",
+        #     )
 
         # Check if user is already a member
         user_repo = UserRepository(db)
@@ -482,8 +482,8 @@ class TeamService:
                 detail="Can only cancel pending invitations",
             )
 
-        # Mark as cancelled
-        invitation.status = "cancelled"
+        # Mark as canceled
+        invitation.status = "canceled"
         invitation_repo.update(invitation)
 
-        return {"message": "Invitation cancelled successfully"}
+        return {"message": "Invitation canceled successfully"}

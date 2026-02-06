@@ -304,18 +304,18 @@ class TeamMemberRepository(BaseRepository[TeamMember]):
 
     def count_owners(self, team_id: int, exclude_user_id: Optional[int] = None) -> int:
         """
-        Count number of owners in a team.
+        Count number of BAs in a team (BA role handles team management).
 
         Args:
             team_id: Team ID
             exclude_user_id: Optional user ID to exclude from count
 
         Returns:
-            Number of owners
+            Number of BAs
         """
         query = (
             self.db.query(func.count(TeamMember.id))
-            .filter(TeamMember.team_id == team_id, TeamMember.role == TeamRole.OWNER)
+            .filter(TeamMember.team_id == team_id, TeamMember.role == TeamRole.ba)
         )
         if exclude_user_id:
             query = query.filter(TeamMember.user_id != exclude_user_id)
@@ -345,13 +345,13 @@ class TeamMemberRepository(BaseRepository[TeamMember]):
             team_id: Team ID
 
         Returns:
-            Number of active owners
+            Number of active BAs
         """
         return (
             self.db.query(func.count(TeamMember.id))
             .filter(
                 TeamMember.team_id == team_id,
-                TeamMember.role == TeamRole.owner,
+                TeamMember.role == TeamRole.ba,
                 TeamMember.is_active == True,
             )
             .scalar()

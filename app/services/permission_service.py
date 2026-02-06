@@ -86,20 +86,20 @@ class PermissionService:
         user_id: int,
     ) -> TeamMember:
         """
-        Verify user is a Business Analyst in the team.
-        In the new model, only BAs can perform admin actions.
-
-        Args:
-            db: Database session
-            team_id: Team ID to check
-            user_id: User ID to verify
-
-        Returns:
-            TeamMember object if authorized
-
-        Raises:
-            HTTPException 403: If user is not a BA in the team
+        Verify user is a Business Analyst in the team OR the Team Creator.
+        Team creators should always have admin rights.
         """
+        # First check if user is the team creator/owner
+        team_repo = TeamRepository(db)
+        team = team_repo.get_by_id(team_id)
+        if team and team.created_by == user_id:
+            # If user is the creator, they are authorized. 
+            # We still return the team member object for consistency
+            team_member_repo = TeamMemberRepository(db)
+            team_member = team_member_repo.get_by_team_and_user(team_id, user_id)
+            if team_member:
+                return team_member
+
         team_member_repo = TeamMemberRepository(db)
         team_member = team_member_repo.get_by_team_and_user(team_id, user_id)
 
@@ -110,7 +110,7 @@ class PermissionService:
         ):
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail="Access denied. Only Business Analysts can perform this action.",
+                detail="Access denied. Only Business Analysts or Team Owners can perform this action.",
             )
 
         return team_member
@@ -338,14 +338,14 @@ class PermissionService:
         if user.role == UserRole.ba:
             return
 
-        # Check if user is team admin
+        # Check if user is team BA (Business Analyst)
         project = PermissionService.get_project_or_404(db, project_id)
         team_member_repo = TeamMemberRepository(db)
         team_member = team_member_repo.get_by_team_and_user(project.team_id, user.id)
 
-        is_admin = team_member and team_member.role == TeamRole.admin
+        is_ba = team_member and team_member.role == TeamRole.ba
 
-        if not is_admin:
+        if not is_ba:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="Only Business Analysts or team admins can approve/reject CRS documents",

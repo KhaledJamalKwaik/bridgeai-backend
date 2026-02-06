@@ -42,7 +42,7 @@ def test_team(db: Session, test_user):
     db.refresh(team)
 
     # Add user as team member
-    member = TeamMember(team_id=team.id, user_id=test_user.id, role=TeamRole.owner)
+    member = TeamMember(team_id=team.id, user_id=test_user.id, role=TeamRole.ba)
     db.add(member)
     db.commit()
     return team

@@ -86,7 +86,7 @@ def upgrade() -> None:
             GROUP BY tm.team_id
             HAVING COUNT(*) >= 2
         ) full_teams ON i.team_id = full_teams.team_id
-        SET i.status = 'cancelled'
+        SET i.status = 'canceled'
         WHERE i.status = 'pending'
     """)
 

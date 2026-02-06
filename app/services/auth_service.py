@@ -35,32 +35,34 @@ class AuthService:
     @staticmethod
     def google_login(db: Session, token: str, role: UserRole, google_client_id: str) -> Dict[str, Any]:
         """
-        Authenticate or register user via Google OAuth.
-        Returns access token and user role.
+        Authenticate user via Google OAuth.
+        Only allows @gmail.com email addresses for Google Sign-In.
         """
         try:
-            # Verify the token with clock skew tolerance
+            # Verify Google token
             id_info = id_token.verify_oauth2_token(
-                token, requests.Request(), google_client_id, clock_skew_in_seconds=10
+                token, requests.Request(), google_client_id
             )
 
-            # Get user info
+            # Extract user data from Google token
+            google_id = id_info["sub"]
             email = id_info.get("email")
-            google_id = id_info.get("sub")
-            name = id_info.get("name")
+            name = id_info.get("name", "")
             picture = id_info.get("picture")
 
-            if not email:
+            # RESTRICTION: Only allow @gmail.com email addresses
+            if not email or not email.endswith("@gmail.com"):
                 raise HTTPException(
-                    status_code=400, detail="Invalid Google token: no email found"
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="Only @gmail.com accounts are allowed for Google Sign-In. Please register with email and password instead."
                 )
 
             # Check if user exists
             user_repo = UserRepository(db)
-            user = user_repo.get_by_email_or_google_id(email, google_id)
+            user = user_repo.get_by_email(email)
 
             if not user:
-                # Create new user
+                # Create new user from Google account
                 user = user_repo.create(
                     User(
                         full_name=name,
@@ -68,15 +70,14 @@ class AuthService:
                         google_id=google_id,
                         avatar_url=picture,
                         role=role,
-                        password_hash=None,  # No password for Google users
+                        password_hash=None,  # Google users don't have a password
                     )
                 )
             else:
-                # Update existing user if needed
+                # Update existing user's Google ID and avatar if needed
                 if not user.google_id:
                     user.google_id = google_id
 
-                # Update avatar if changed
                 if picture and user.avatar_url != picture:
                     user.avatar_url = picture
 

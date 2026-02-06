@@ -38,10 +38,11 @@ class TeamCreate(BaseModel):
         v = v.strip()
         if not v:
             raise ValueError("Team name cannot be empty")
-        if not re.match(r"^[a-zA-Z0-9\s\-_]+$", v):
-            raise ValueError(
-                "Team name can only contain letters, numbers, spaces, hyphens, and underscores"
-            )
+        # Removed strict regex to allow Arabic and other characters
+        # if not re.match(r"^[a-zA-Z0-9\s\-_]+$", v):
+        #     raise ValueError(
+        #         "Team name can only contain letters, numbers, spaces, hyphens, and underscores"
+        #     )
         return v
 
     @validator("description")
@@ -66,10 +67,11 @@ class TeamUpdate(BaseModel):
             v = v.strip()
             if not v:
                 raise ValueError("Team name cannot be empty")
-            if not re.match(r"^[a-zA-Z0-9\s\-_]+$", v):
-                raise ValueError(
-                    "Team name can only contain letters, numbers, spaces, hyphens, and underscores"
-                )
+            # Removed strict regex to allow Arabic and other characters
+            # if not re.match(r"^[a-zA-Z0-9\s\-_]+$", v):
+            #     raise ValueError(
+            #         "Team name can only contain letters, numbers, spaces, hyphens, and underscores"
+            #     )
         return v
 
     @validator("description")

@@ -17,6 +17,18 @@ from app.services import notification_service
 router = APIRouter()
 
 
+@router.get("/check/{token}")
+@limiter.limit("10/minute")
+def check_invitation(request: Request, token: str, db: Session = Depends(get_db)):
+    """
+    Check invitation validity and user registration status.
+    Used by frontend to determine if user needs to register before accepting.
+    Returns invitation details and whether user is registered.
+    """
+    result = InvitationService.check_invitation(db, token)
+    return result
+
+
 @router.get("/{token}", response_model=InvitationPublicOut)
 @limiter.limit("10/minute")
 def get_invitation(request: Request, token: str, db: Session = Depends(get_db)):

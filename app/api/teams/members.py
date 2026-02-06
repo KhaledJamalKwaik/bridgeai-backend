@@ -77,4 +77,6 @@ def remove_team_member(
     current_user: User = Depends(get_current_user),
 ):
     """Remove a member from the team. Only owners and admins can remove members."""
-    return TeamService.remove_member(db, team_id, member_id, current_user)
+    result = TeamService.remove_member(db, team_id, member_id, current_user)
+    db.commit()
+    return result

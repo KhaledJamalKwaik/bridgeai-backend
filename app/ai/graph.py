@@ -43,29 +43,41 @@ def create_graph():
     graph.set_entry_point("clarification")
 
     # ----------------------------
-    # CLARIFICATION -> TEMPLATE FILLER or END
+    # CLARIFICATION -> SUGGESTIONS or END
     # ----------------------------
     def route_after_clarification(state: AgentState):
         """
         Route after clarification:
         - If needs_clarification is True → END (return questions to client)
         - If intent is not 'requirement' → END (echo or greeting)
-        - Otherwise → END (template filler now runs in background)
+        - If suggestions should be generated → suggestions
+        - Otherwise → END (template filler runs in background)
         """
         needs_clarification = state.get("needs_clarification", False)
         intent = state.get("intent", "requirement")
         
-        # Always route to END - background CRS generation handles template filling
-        # This prevents output conflicts and allows real-time updates
+        # If clarification needed or not a requirement, end immediately
+        if needs_clarification or intent != "requirement":
+            return END
+        
+        # Check if suggestions should be generated (keyword triggers or CRS complete)
+        if should_generate_suggestions(state):
+            return "suggestions"
+        
+        # Otherwise route to END - background CRS generation handles template filling
         return END
 
     graph.add_conditional_edges(
         "clarification",
         route_after_clarification,
         {
+            "suggestions": "suggestions",
             END: END,
         }
     )
+    
+    # Route from suggestions to END
+    graph.add_edge("suggestions", END)
 
     # Note: Template filler and memory nodes are no longer part of the main graph.
     # CRS generation now runs in background via BackgroundCRSGenerator service.

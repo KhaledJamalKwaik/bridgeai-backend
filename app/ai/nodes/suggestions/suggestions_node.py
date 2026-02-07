@@ -28,6 +28,10 @@ def suggestions_node(state: AgentState) -> AgentState:
         Updated state with creative suggestions
     """
     try:
+        # Log suggestion node invocation with trigger source
+        trigger = state.get("suggestion_trigger", "unknown")
+        logger.info(f"Suggestions node invoked (trigger={trigger})")
+        
         project_id = state.get("project_id")
         db = state.get("db")
         user_input = state.get("user_input", "")
@@ -160,5 +164,14 @@ def should_generate_suggestions(state: AgentState) -> bool:
         "extend",
         "expand",
     ]
+    
+    # Check for keyword triggers
+    has_keyword = any(keyword in user_input for keyword in suggestion_keywords)
+    
+    # Set trigger source in state for tracking
+    if has_keyword:
+        state["suggestion_trigger"] = "keyword"
+    elif crs_complete:
+        state["suggestion_trigger"] = "crs_complete"
 
-    return any(keyword in user_input for keyword in suggestion_keywords) or crs_complete
+    return has_keyword or crs_complete

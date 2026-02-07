@@ -354,6 +354,67 @@ async def websocket_endpoint(
                         db.add(ai_message)
                         db.commit()
                         db.refresh(ai_message)
+                        
+                        # Check if suggestions were generated and send as separate message
+                        suggestions = result.get("suggestions", [])
+                        if suggestions:
+                            # Format suggestions as a readable message
+                            suggestions_text = "\n\n💡 **Here are some creative suggestions for your project:**\n\n"
+                            
+                            # Group by category
+                            categories = {}
+                            for suggestion in suggestions:
+                                category = suggestion.get("category", "OTHER")
+                                if category not in categories:
+                                    categories[category] = []
+                                categories[category].append(suggestion)
+                            
+                            # Format each category
+                            category_labels = {
+                                "ADDITIONAL_FEATURES": "🎯 Additional Features",
+                                "ALTERNATIVE_SCENARIOS": "🔄 Alternative Scenarios",
+                                "INTEGRATION_OPPORTUNITIES": "🔗 Integration Opportunities",
+                                "ENHANCEMENT_IDEAS": "✨ Enhancement Ideas",
+                                "FUTURE_CONSIDERATIONS": "🔮 Future Considerations",
+                                "OTHER": "💭 Other Suggestions"
+                            }
+                            
+                            for category, items in categories.items():
+                                label = category_labels.get(category, category)
+                                suggestions_text += f"\n**{label}**\n"
+                                for idx, item in enumerate(items, 1):
+                                    title = item.get("title", "Untitled")
+                                    description = item.get("description", "")
+                                    suggestions_text += f"{idx}. **{title}**\n   {description}\n\n"
+                            
+                            # Save suggestions as a separate AI message
+                            suggestions_message = Message(
+                                session_id=chat_id,
+                                sender_type=SenderType.ai,
+                                sender_id=None,
+                                content=suggestions_text,
+                            )
+                            db.add(suggestions_message)
+                            db.commit()
+                            db.refresh(suggestions_message)
+                            
+                            # Broadcast suggestions message
+                            await manager.broadcast_to_session({
+                                "type": "message",
+                                "id": suggestions_message.id,
+                                "session_id": suggestions_message.session_id,
+                                "sender_type": suggestions_message.sender_type.value,
+                                "sender_id": suggestions_message.sender_id,
+                                "content": suggestions_message.content,
+                                "timestamp": suggestions_message.timestamp.isoformat(),
+                                "is_suggestions": True,
+                                "suggestions_metadata": {
+                                    "count": len(suggestions),
+                                    "trigger": result.get("suggestion_trigger", "unknown")
+                                }
+                            }, chat_id)
+                            
+                            logger.info(f"Sent {len(suggestions)} suggestions via chat for session {chat_id}")
 
                         # Broadcast AI response with optional CRS metadata
                         # CRS metadata is included when the template filler generates a complete CRS

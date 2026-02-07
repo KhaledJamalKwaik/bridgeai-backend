@@ -440,6 +440,42 @@ class BackgroundCRSGenerator:
         })
         
         logger.info(f"CRS generation complete for session {session_id} (complete={is_complete})")
+        
+        # Step 9: Generate suggestions if CRS is complete
+        if is_complete:
+            try:
+                from app.ai.nodes.suggestions import suggestions_node
+                from app.ai.state import AgentState
+                
+                # Build state for suggestions
+                suggestion_state: AgentState = {
+                    "project_id": task.project_id,
+                    "user_id": task.user_id,
+                    "db": db,
+                    "user_input": "CRS complete - generating suggestions",
+                    "crs_is_complete": True,
+                    "suggestion_trigger": "crs_complete"
+                }
+                
+                # Generate suggestions
+                suggestion_result = suggestions_node(suggestion_state)
+                suggestions = suggestion_result.get("suggestions", [])
+                
+                if suggestions:
+                    # Publish suggestions event
+                    await event_bus.publish(session_id, {
+                        "type": "suggestions_generated",
+                        "session_id": session_id,
+                        "suggestions": suggestions,
+                        "trigger": "crs_complete",
+                        "timestamp": datetime.utcnow().isoformat()
+                    })
+                    logger.info(f"Generated {len(suggestions)} suggestions for completed CRS (session={session_id})")
+                else:
+                    logger.warning(f"No suggestions generated for session {session_id}")
+                    
+            except Exception as e:
+                logger.error(f"Failed to generate suggestions after CRS completion: {str(e)}")
     
     async def queue_generation(
         self,

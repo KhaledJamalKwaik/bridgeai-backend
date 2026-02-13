@@ -30,6 +30,7 @@ class AgentState(TypedDict, total=False):
     suggestions: Optional[List[Dict[str, Any]]]  # Generated creative suggestions
     suggestions_generated: bool  # Whether suggestions have been generated
     suggestions_error: Optional[str]  # Error message if suggestions failed
+    suggestion_trigger: Optional[str]  # Trigger source: "keyword", "crs_complete", or "manual"
 
     # Workflow control
     last_node: Optional[str]
